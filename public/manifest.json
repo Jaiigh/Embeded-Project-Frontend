@@ -1,7 +1,7 @@
 {
   "name": "Plant Watering System",
   "short_name": "Plant Water",
-  "description": "Monitor and manage your plant watering system with notifications",
+  "description": "Monitor and manage your plant watering system",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

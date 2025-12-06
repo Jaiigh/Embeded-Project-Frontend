@@ -4,12 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { WaterLevel } from "@/components/WaterLevel";
 import { MoistureLevel } from "@/components/MoistureLevel";
 import { WateringNotification } from "@/components/WateringNotification";
-import { NotificationPermission } from "@/components/NotificationPermission";
+import { EmailSettings } from "@/components/EmailSettings";
 import { getFirebaseValue } from "@/lib/firebase";
-import {
-  sendWateringAlert,
-  canSendNotifications,
-} from "@/lib/mobile-notifications";
+import { sendEmailAlert } from "@/lib/email-alerts";
 
 // Convert soil-moisture sensor value to percentage
 // 1300 = 100% moisture, 3900 = 0% moisture
@@ -108,32 +105,34 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // Send mobile notifications when thresholds are crossed
+  // Send email alerts when thresholds are crossed
   useEffect(() => {
-    if (
-      waterLevel !== null &&
-      moistureLevel !== null &&
-      canSendNotifications()
-    ) {
+    if (waterLevel !== null && moistureLevel !== null) {
       const waterLow = waterLevel < waterThreshold;
       const moistureLow = moistureLevel < moistureThreshold;
 
       if (waterLow || moistureLow) {
         const alertKey = `${waterLevel}-${moistureLevel}`;
-        // Only send notification once per unique alert state
+        // Only send email once per unique alert state
         if (notificationSentRef.current !== alertKey) {
+          console.log("🚨 Alert triggered! Sending email...");
           notificationSentRef.current = alertKey;
-          sendWateringAlert(
-            waterLevel,
-            moistureLevel,
-            waterThreshold,
-            moistureThreshold
-          ).catch((err) => {
-            console.error("Error sending notification:", err);
+
+          let alertType: "water" | "moisture" | "both";
+          if (waterLow && moistureLow) {
+            alertType = "both";
+          } else if (waterLow) {
+            alertType = "water";
+          } else {
+            alertType = "moisture";
+          }
+
+          sendEmailAlert(waterLevel, moistureLevel, alertType).catch((err) => {
+            console.error("❌ Error sending email:", err);
           });
         }
       } else {
-        // Reset notification tracking when levels are normal
+        // Reset email tracking when levels are normal
         notificationSentRef.current = "";
       }
     }
@@ -149,9 +148,9 @@ export default function Home() {
           Monitor your plant&apos;s water and moisture levels
         </p>
 
-        {/* Notification Permission */}
+        {/* Email Settings */}
         <div className="mb-6">
-          <NotificationPermission />
+          <EmailSettings />
         </div>
 
         {error && (

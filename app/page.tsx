@@ -111,11 +111,21 @@ export default function Home() {
       const waterLow = waterLevel < waterThreshold;
       const moistureLow = moistureLevel < moistureThreshold;
 
+      console.log("🔍 Checking alert conditions:", {
+        waterLevel,
+        moistureLevel,
+        waterThreshold,
+        moistureThreshold,
+        waterLow,
+        moistureLow,
+      });
+
       if (waterLow || moistureLow) {
         const alertKey = `${waterLevel}-${moistureLevel}`;
         // Only send email once per unique alert state
         if (notificationSentRef.current !== alertKey) {
           console.log("🚨 Alert triggered! Sending email...");
+          console.log("Current levels:", { waterLevel, moistureLevel });
           notificationSentRef.current = alertKey;
 
           let alertType: "water" | "moisture" | "both";
@@ -127,13 +137,28 @@ export default function Home() {
             alertType = "moisture";
           }
 
-          sendEmailAlert(waterLevel, moistureLevel, alertType).catch((err) => {
-            console.error("❌ Error sending email:", err);
-          });
+          sendEmailAlert(waterLevel, moistureLevel, alertType)
+            .then((success) => {
+              if (success) {
+                console.log("✅ Email alert sent successfully");
+              } else {
+                console.error("❌ Email alert failed to send");
+              }
+            })
+            .catch((err) => {
+              console.error("❌ Error sending email:", err);
+            });
+        } else {
+          console.log(
+            "⏭️ Email already sent for this alert state, skipping..."
+          );
         }
       } else {
         // Reset email tracking when levels are normal
-        notificationSentRef.current = "";
+        if (notificationSentRef.current !== "") {
+          console.log("✅ Levels back to normal, resetting email tracking");
+          notificationSentRef.current = "";
+        }
       }
     }
   }, [waterLevel, moistureLevel, waterThreshold, moistureThreshold]);

@@ -34,6 +34,8 @@ export async function sendEmailAlert(
   }
 
   try {
+    console.log('📧 Attempting to send email alert:', { email, waterLevel, moistureLevel, alertType });
+    
     const response = await fetch('/api/send-email', {
       method: 'POST',
       headers: {
@@ -47,17 +49,18 @@ export async function sendEmailAlert(
       }),
     });
 
+    const result = await response.json();
+
     if (!response.ok) {
-      const error = await response.json();
-      console.error('Failed to send email:', error);
+      console.error('❌ Failed to send email:', result);
+      console.error('Response status:', response.status);
       return false;
     }
 
-    const result = await response.json();
     console.log('✅ Email sent successfully:', result);
     return true;
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('❌ Error sending email:', error);
     return false;
   }
 }

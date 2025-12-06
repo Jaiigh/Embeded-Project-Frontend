@@ -52,15 +52,24 @@ export async function sendEmailAlert(
     const result = await response.json();
 
     if (!response.ok) {
-      console.error('❌ Failed to send email:', result);
-      console.error('Response status:', response.status);
+      console.error('❌ Failed to send email - Status:', response.status);
+      console.error('❌ Error:', result.error);
+      console.error('❌ Details:', result.details);
+      console.error('❌ Full response:', JSON.stringify(result, null, 2));
+      
+      // Show user-friendly error
+      if (result.error === 'Email service not configured') {
+        console.error('💡 SOLUTION: Add RESEND_API_KEY to Vercel environment variables and redeploy');
+      }
+      
       return false;
     }
 
     console.log('✅ Email sent successfully:', result);
     return true;
-  } catch (error) {
-    console.error('❌ Error sending email:', error);
+  } catch (error: any) {
+    console.error('❌ Network/Parse error sending email:', error);
+    console.error('❌ Error message:', error.message);
     return false;
   }
 }

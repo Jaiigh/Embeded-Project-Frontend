@@ -31,7 +31,7 @@ export function EmailSettings() {
     }
     setIsSaved(true);
     setIsLoading(false);
-    
+
     // Show confirmation
     setTimeout(() => {
       setIsSaved(false);
@@ -69,7 +69,7 @@ export function EmailSettings() {
             setIsSaved(false);
           }}
           placeholder="your.email@example.com"
-          className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-green-500"
+          className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-green-500 text-gray-900 bg-white"
         />
         <button
           onClick={handleSave}
@@ -102,4 +102,3 @@ export function EmailSettings() {
     </div>
   );
 }
-

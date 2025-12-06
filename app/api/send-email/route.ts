@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
 export async function POST(request: Request) {
   try {
@@ -15,14 +15,19 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if API key is configured
-    const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) {
-      console.error('❌ RESEND_API_KEY not found in environment variables');
+    // Check if SMTP is configured
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpPort = process.env.SMTP_PORT;
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
+    const smtpFrom = process.env.SMTP_FROM || smtpUser;
+
+    if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) {
+      console.error('❌ SMTP configuration missing');
       return NextResponse.json(
         { 
           error: 'Email service not configured',
-          details: 'RESEND_API_KEY environment variable is missing. Please add it to Vercel environment variables.'
+          details: 'SMTP environment variables are missing. Please add SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS to Vercel environment variables.'
         },
         { status: 500 }
       );
@@ -41,12 +46,23 @@ export async function POST(request: Request) {
     }
 
     try {
-      const resend = new Resend(apiKey);
+      // Create transporter
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: parseInt(smtpPort, 10),
+        secure: smtpPort === '465', // true for 465, false for other ports
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      });
+
+      console.log('📤 Sending email via SMTP to:', email);
+      console.log('📤 Using SMTP server:', smtpHost, 'Port:', smtpPort);
       
-      console.log('📤 Sending email via Resend to:', email);
-      
-      const { data, error } = await resend.emails.send({
-        from: 'Plant Watering System <onboarding@resend.dev>',
+      // Send email
+      const info = await transporter.sendMail({
+        from: smtpFrom || `Plant Watering System <${smtpUser}>`,
         to: email,
         subject: subject,
         html: `
@@ -63,29 +79,18 @@ export async function POST(request: Request) {
         `,
       });
       
-      if (error) {
-        console.error('❌ Resend API error:', error);
-        return NextResponse.json(
-          { 
-            error: 'Failed to send email',
-            details: error.message || JSON.stringify(error)
-          },
-          { status: 500 }
-        );
-      }
-      
-      console.log('✅ Email sent successfully via Resend:', data);
+      console.log('✅ Email sent successfully via SMTP:', info.messageId);
       return NextResponse.json({
         success: true,
         message: 'Email sent successfully',
-        data: data,
+        messageId: info.messageId,
       });
-    } catch (resendError: any) {
-      console.error('❌ Exception sending email:', resendError);
+    } catch (smtpError: any) {
+      console.error('❌ SMTP error:', smtpError);
       return NextResponse.json(
         { 
           error: 'Failed to send email',
-          details: resendError.message || String(resendError)
+          details: smtpError.message || String(smtpError)
         },
         { status: 500 }
       );
@@ -101,4 +106,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

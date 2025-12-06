@@ -38,13 +38,21 @@ export function WateringNotification({
       if (notificationSentRef.current !== alertKey) {
         notificationSentRef.current = alertKey
         
-        if (waterLow && moistureLow) {
-          sendWateringAlert('both', waterLevel, moistureLevel)
-        } else if (waterLow) {
-          sendWateringAlert('water', waterLevel)
-        } else if (moistureLow) {
-          sendWateringAlert('moisture', undefined, moistureLevel)
-        }
+        // Small delay to ensure service worker is ready
+        setTimeout(async () => {
+          try {
+            if (waterLow && moistureLow) {
+              await sendWateringAlert('both', waterLevel, moistureLevel)
+            } else if (waterLow) {
+              await sendWateringAlert('water', waterLevel)
+            } else if (moistureLow) {
+              await sendWateringAlert('moisture', undefined, moistureLevel)
+            }
+            console.log('Notification sent successfully')
+          } catch (error) {
+            console.error('Failed to send notification:', error)
+          }
+        }, 500)
       }
     }
   }, [shouldAlert, waterLow, moistureLow, waterLevel, moistureLevel])

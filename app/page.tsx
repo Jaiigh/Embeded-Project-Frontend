@@ -6,6 +6,7 @@ import { MoistureLevel } from '@/components/MoistureLevel'
 import { WateringNotification } from '@/components/WateringNotification'
 import { FirebaseTest } from '@/components/FirebaseTest'
 import { NotificationPermission } from '@/components/NotificationPermission'
+import { sendWateringAlert, canSendNotifications } from '@/lib/notifications'
 
 export default function Home() {
   const [waterLevel, setWaterLevel] = useState(75)
@@ -26,6 +27,22 @@ export default function Home() {
         {/* Notification Permission */}
         <div className="mb-6">
           <NotificationPermission />
+          {/* Test Notification Button */}
+          <div className="mt-4">
+            <button
+              onClick={async () => {
+                if (canSendNotifications()) {
+                  console.log('Testing notification...')
+                  await sendWateringAlert('water', 15)
+                } else {
+                  alert('Notifications not enabled! Please enable them first.')
+                }
+              }}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
+            >
+              🔔 Test Notification
+            </button>
+          </div>
         </div>
 
         {/* Test Controls */}

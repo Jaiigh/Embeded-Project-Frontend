@@ -63,7 +63,26 @@ export async function sendNotification(options: NotificationOptions): Promise<vo
   // Register service worker if not already registered
   if ('serviceWorker' in navigator) {
     try {
-      const registration = await navigator.serviceWorker.ready
+      // Wait for service worker to be ready
+      let registration = null
+      
+      // Check if service worker is already registered
+      if (navigator.serviceWorker.controller) {
+        // Service worker is already controlling the page
+        registration = await navigator.serviceWorker.ready
+      } else {
+        // Try to get existing registration first
+        registration = await navigator.serviceWorker.getRegistration()
+        
+        // If no registration exists, wait for ready (this will register if needed)
+        if (!registration) {
+          registration = await navigator.serviceWorker.ready
+        }
+      }
+      
+      if (!registration) {
+        throw new Error('Service worker registration not available')
+      }
       
       // Service worker notifications support additional options
       const notificationOptions: any = {
@@ -87,14 +106,36 @@ export async function sendNotification(options: NotificationOptions): Promise<vo
       }
       
       await registration.showNotification(options.title, notificationOptions)
+      console.log('Notification shown via service worker')
     } catch (error) {
-      console.error('Error showing notification:', error)
+      console.error('Error showing notification via service worker:', error)
       // Fallback to regular notification if service worker fails
-      new Notification(options.title, {
-        body: options.body,
-        icon: options.icon,
-        tag: options.tag,
-      })
+      try {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(options.title, {
+            body: options.body,
+            icon: options.icon || '/icon-192x192.png',
+            tag: options.tag,
+          })
+          console.log('Notification shown via fallback method')
+        }
+      } catch (fallbackError) {
+        console.error('Fallback notification also failed:', fallbackError)
+      }
+    }
+  } else {
+    // No service worker support, use regular notifications
+    try {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(options.title, {
+          body: options.body,
+          icon: options.icon || '/icon-192x192.png',
+          tag: options.tag,
+        })
+        console.log('Notification shown via regular Notification API')
+      }
+    } catch (error) {
+      console.error('Error showing regular notification:', error)
     }
   }
 }

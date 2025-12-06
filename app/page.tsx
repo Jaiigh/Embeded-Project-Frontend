@@ -1,10 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { WaterLevel } from "@/components/WaterLevel";
 import { MoistureLevel } from "@/components/MoistureLevel";
 import { WateringNotification } from "@/components/WateringNotification";
+import { NotificationPermission } from "@/components/NotificationPermission";
 import { getFirebaseValue } from "@/lib/firebase";
+import {
+  sendWateringAlert,
+  canSendNotifications,
+} from "@/lib/mobile-notifications";
 
 // Convert soil-moisture sensor value to percentage
 // 1300 = 100% moisture, 3900 = 0% moisture
@@ -33,6 +38,7 @@ export default function Home() {
   const [moistureLevel, setMoistureLevel] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const notificationSentRef = useRef<string>("");
 
   const waterThreshold = 30; // Alert if water level < 30%
   const moistureThreshold = 50; // Alert if moisture level < 50%
@@ -102,6 +108,37 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
+  // Send mobile notifications when thresholds are crossed
+  useEffect(() => {
+    if (
+      waterLevel !== null &&
+      moistureLevel !== null &&
+      canSendNotifications()
+    ) {
+      const waterLow = waterLevel < waterThreshold;
+      const moistureLow = moistureLevel < moistureThreshold;
+
+      if (waterLow || moistureLow) {
+        const alertKey = `${waterLevel}-${moistureLevel}`;
+        // Only send notification once per unique alert state
+        if (notificationSentRef.current !== alertKey) {
+          notificationSentRef.current = alertKey;
+          sendWateringAlert(
+            waterLevel,
+            moistureLevel,
+            waterThreshold,
+            moistureThreshold
+          ).catch((err) => {
+            console.error("Error sending notification:", err);
+          });
+        }
+      } else {
+        // Reset notification tracking when levels are normal
+        notificationSentRef.current = "";
+      }
+    }
+  }, [waterLevel, moistureLevel, waterThreshold, moistureThreshold]);
+
   return (
     <main className="min-h-screen p-8 bg-gradient-to-br from-green-50 to-blue-50">
       <div className="max-w-6xl mx-auto">
@@ -111,6 +148,11 @@ export default function Home() {
         <p className="text-gray-600 mb-8">
           Monitor your plant&apos;s water and moisture levels
         </p>
+
+        {/* Notification Permission */}
+        <div className="mb-6">
+          <NotificationPermission />
+        </div>
 
         {error && (
           <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4 mb-6">

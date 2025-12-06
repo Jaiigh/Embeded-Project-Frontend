@@ -18,7 +18,7 @@ export default function Home() {
           Plant Watering System
         </h1>
         <p className="text-gray-600 mb-8">
-          Monitor your plant's water and moisture levels
+          Monitor your plant&apos;s water and moisture levels
         </p>
 
         {/* Test Controls */}

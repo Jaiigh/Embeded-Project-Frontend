@@ -105,7 +105,7 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // Send email alerts when thresholds are crossed
+  // Send email alerts only when water level is below threshold
   useEffect(() => {
     if (waterLevel !== null && moistureLevel !== null) {
       const waterLow = waterLevel < waterThreshold;
@@ -120,43 +120,42 @@ export default function Home() {
         moistureLow,
       });
 
-      if (waterLow || moistureLow) {
-        const alertKey = `${waterLevel}-${moistureLevel}`;
+      // Only send email if water level is low (ignore moisture level for emails)
+      if (waterLow) {
+        const alertKey = `water-${waterLevel}`;
         // Only send email once per unique alert state
         if (notificationSentRef.current !== alertKey) {
-          console.log("🚨 Alert triggered! Sending email...");
-          console.log("Current levels:", { waterLevel, moistureLevel });
+          console.log("🚨 Water level alert triggered! Sending email...");
+          console.log("Current water level:", waterLevel);
           notificationSentRef.current = alertKey;
 
-          let alertType: "water" | "moisture" | "both";
-          if (waterLow && moistureLow) {
-            alertType = "both";
-          } else if (waterLow) {
-            alertType = "water";
-          } else {
-            alertType = "moisture";
-          }
-
-          sendEmailAlert(waterLevel, moistureLevel, alertType)
-            .then((success) => {
-              if (success) {
-                console.log("✅ Email alert sent successfully");
-              } else {
-                console.error("❌ Email alert failed to send");
-              }
-            })
-            .catch((err) => {
-              console.error("❌ Error sending email:", err);
-            });
+          // Add a small delay before sending to avoid rapid-fire requests
+          setTimeout(() => {
+            sendEmailAlert(waterLevel, moistureLevel, "water")
+              .then((success) => {
+                if (success) {
+                  console.log("✅ Email alert sent successfully");
+                } else {
+                  console.log(
+                    "⏭️ Email send skipped (cooldown or other reason)"
+                  );
+                }
+              })
+              .catch((err) => {
+                console.error("❌ Error sending email:", err);
+              });
+          }, 2000); // 2 second delay before sending
         } else {
           console.log(
-            "⏭️ Email already sent for this alert state, skipping..."
+            "⏭️ Email already sent for this water level, skipping..."
           );
         }
       } else {
-        // Reset email tracking when levels are normal
+        // Reset email tracking when water level is normal
         if (notificationSentRef.current !== "") {
-          console.log("✅ Levels back to normal, resetting email tracking");
+          console.log(
+            "✅ Water level back to normal, resetting email tracking"
+          );
           notificationSentRef.current = "";
         }
       }

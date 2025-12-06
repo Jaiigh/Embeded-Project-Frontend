@@ -6,7 +6,8 @@ A modern Next.js frontend for monitoring plant water and moisture levels using E
 
 1. **Water Level Display** - View current water level with visual progress bar
 2. **Moisture Level Display** - View current soil moisture level with visual progress bar
-3. **Watering Notifications** - Alerts when water or moisture levels drop below thresholds
+3. **Email Alerts** - Receive email notifications when water level drops below 30%
+4. **Real-time Monitoring** - Fetches data from Firebase every 2 seconds
 
 ## Getting Started
 
@@ -14,6 +15,8 @@ A modern Next.js frontend for monitoring plant water and moisture levels using E
 
 - Node.js 18+ installed
 - npm or yarn package manager
+- Firebase Realtime Database configured
+- SMTP email service (Gmail, Outlook, or custom SMTP)
 
 ### Installation
 
@@ -22,12 +25,14 @@ A modern Next.js frontend for monitoring plant water and moisture levels using E
 npm install
 ```
 
-2. Run the development server:
+2. Configure environment variables (see `SMTP_SETUP.md` for email setup)
+
+3. Run the development server:
 ```bash
 npm run dev
 ```
 
-3. Open [http://localhost:3000](http://localhost:3000) in your browser
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ## Project Structure
 
@@ -36,11 +41,17 @@ npm run dev
 │   ├── layout.tsx          # Root layout with providers
 │   ├── page.tsx             # Main dashboard page
 │   ├── globals.css          # Global styles
-│   └── providers.tsx        # React Query provider setup
+│   ├── providers.tsx        # React Query provider setup
+│   └── api/
+│       └── send-email/      # Email sending API route
 ├── components/
 │   ├── WaterLevel.tsx       # Water level display component
 │   ├── MoistureLevel.tsx    # Moisture level display component
-│   └── WateringNotification.tsx  # Alert notification component
+│   ├── WateringNotification.tsx  # Visual alert component
+│   └── EmailSettings.tsx    # Email configuration component
+├── lib/
+│   ├── firebase.ts          # Firebase connection utilities
+│   └── email-alerts.ts      # Email alert utilities
 └── package.json
 ```
 
@@ -51,34 +62,67 @@ Displays the current water level with:
 - Visual progress bar (blue/yellow/red based on level)
 - Percentage display
 - Status indicator (Normal/Low)
-- Configurable threshold (default: 20%)
+- Configurable threshold (default: 30%)
 
 ### MoistureLevel
 Displays the current soil moisture level with:
 - Visual progress bar (green/yellow/red based on level)
 - Percentage display
 - Status indicator (Normal/Low)
-- Configurable threshold (default: 30%)
+- Configurable threshold (default: 50%)
 
 ### WateringNotification
-Shows alerts when:
+Shows visual alerts when:
 - Water level drops below threshold
 - Moisture level drops below threshold
 - Both levels are low (critical alert)
 
-## Mock Data
+### EmailSettings
+Allows users to:
+- Enter and save their email address
+- Receive email alerts when water level is low
 
-Currently, the components use mock data:
-- Water Level: 75% (default)
-- Moisture Level: 65% (default)
+## Firebase Integration
 
-These will be replaced with real data from Firebase/ESP32 in future implementation steps.
+The app fetches data from Firebase Realtime Database:
+- **Water Level**: `/water-percent` (structure: `{ value: number }`)
+- **Moisture Level**: `/soil-moisture` (structure: `{ value: number }`)
+
+Moisture sensor values are converted:
+- 1300 = 100% moisture
+- 3900 = 0% moisture
+- 2600 = 50% threshold
+
+## Email Alerts
+
+Email alerts are sent via SMTP when:
+- Water level drops below 30%
+- Rate limited to 1 email per minute
+
+See `SMTP_SETUP.md` for email configuration instructions.
+
+## Deployment
+
+### Vercel (Recommended)
+
+1. Push code to GitHub
+2. Import repository in Vercel
+3. Add environment variables:
+   - `SMTP_HOST`
+   - `SMTP_PORT`
+   - `SMTP_USER`
+   - `SMTP_PASS`
+   - `SMTP_FROM`
+4. Deploy
+
+## Documentation
+
+- **SMTP_SETUP.md** - Email configuration guide
+- **FIREBASE_SETUP.md** - Firebase setup instructions
 
 ## Next Steps
 
 1. Set up Firebase connection
-2. Create API layer for ESP32 data
-3. Implement real-time data fetching
-4. Add data validation with Zod schemas
-5. Connect to actual sensor readings
-
+2. Configure SMTP email service
+3. Connect to actual ESP32 sensors
+4. Deploy to production

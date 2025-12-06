@@ -1,95 +1,64 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useRef } from 'react'
-import { sendWateringAlert, canSendNotifications } from '@/lib/notifications'
+import { useState, useEffect } from "react";
 
 interface WateringNotificationProps {
-  waterLevel: number
-  moistureLevel: number
-  waterThreshold?: number
-  moistureThreshold?: number
+  waterLevel: number;
+  moistureLevel: number;
+  waterThreshold?: number;
+  moistureThreshold?: number;
 }
 
 export function WateringNotification({
   waterLevel,
   moistureLevel,
-  waterThreshold = 20,
-  moistureThreshold = 30,
+  waterThreshold = 30,
+  moistureThreshold = 50,
 }: WateringNotificationProps) {
-  const [isDismissed, setIsDismissed] = useState(false)
-  const notificationSentRef = useRef<string>('')
+  const [isDismissed, setIsDismissed] = useState(false);
 
-  const waterLow = waterLevel < waterThreshold
-  const moistureLow = moistureLevel < moistureThreshold
-  const shouldAlert = (waterLow || moistureLow) && !isDismissed
+  const waterLow = waterLevel < waterThreshold;
+  const moistureLow = moistureLevel < moistureThreshold;
+  const shouldAlert = (waterLow || moistureLow) && !isDismissed;
 
   // Reset dismissal when levels change
   useEffect(() => {
-    setIsDismissed(false)
-    notificationSentRef.current = '' // Reset notification tracking
-  }, [waterLevel, moistureLevel])
-
-  // Send push notification when alert is triggered (only once per alert state)
-  useEffect(() => {
-    if (shouldAlert && canSendNotifications()) {
-      const alertKey = `${waterLow}-${moistureLow}-${waterLevel}-${moistureLevel}`
-      
-      // Only send if we haven't sent for this exact alert state
-      if (notificationSentRef.current !== alertKey) {
-        notificationSentRef.current = alertKey
-        
-        // Small delay to ensure service worker is ready
-        setTimeout(async () => {
-          try {
-            if (waterLow && moistureLow) {
-              await sendWateringAlert('both', waterLevel, moistureLevel)
-            } else if (waterLow) {
-              await sendWateringAlert('water', waterLevel)
-            } else if (moistureLow) {
-              await sendWateringAlert('moisture', undefined, moistureLevel)
-            }
-            console.log('Notification sent successfully')
-          } catch (error) {
-            console.error('Failed to send notification:', error)
-          }
-        }, 500)
-      }
-    }
-  }, [shouldAlert, waterLow, moistureLow, waterLevel, moistureLevel])
+    setIsDismissed(false);
+  }, [waterLevel, moistureLevel]);
 
   if (!shouldAlert) {
-    return null
+    return null;
   }
 
   const getAlertMessage = () => {
     if (waterLow && moistureLow) {
-      return 'Water level and moisture level are both low! Please water your plant immediately.'
+      return "Water level and moisture level are both low! Please water your plant immediately.";
     } else if (waterLow) {
-      return `Water level is low (${waterLevel}%). Please refill the water reservoir.`
+      return `Water level is low (${waterLevel}%). Please refill the water reservoir.`;
     } else {
-      return `Moisture level is low (${moistureLevel}%). Please water your plant.`
+      return `Moisture level is low (${moistureLevel}%). Please water your plant.`;
     }
-  }
+  };
 
   const getAlertType = () => {
     if (waterLow && moistureLow) {
-      return 'critical'
+      return "critical";
     } else if (waterLow) {
-      return 'warning'
+      return "warning";
     } else {
-      return 'warning'
+      return "warning";
     }
-  }
+  };
 
-  const alertType = getAlertType()
+  const alertType = getAlertType();
   const bgColor =
-    alertType === 'critical'
-      ? 'bg-red-50 border-red-300'
-      : 'bg-yellow-50 border-yellow-300'
+    alertType === "critical"
+      ? "bg-red-50 border-red-300"
+      : "bg-yellow-50 border-yellow-300";
   const textColor =
-    alertType === 'critical' ? 'text-red-800' : 'text-yellow-800'
+    alertType === "critical" ? "text-red-800" : "text-yellow-800";
   const iconColor =
-    alertType === 'critical' ? 'text-red-600' : 'text-yellow-600'
+    alertType === "critical" ? "text-red-600" : "text-yellow-600";
 
   return (
     <div
@@ -98,7 +67,7 @@ export function WateringNotification({
       <div className="flex items-start justify-between">
         <div className="flex items-start space-x-4 flex-1">
           <div className={`${iconColor} flex-shrink-0`}>
-            {alertType === 'critical' ? (
+            {alertType === "critical" ? (
               <svg
                 className="w-8 h-8"
                 fill="none"
@@ -129,12 +98,8 @@ export function WateringNotification({
             )}
           </div>
           <div className="flex-1">
-            <h3
-              className={`text-xl font-bold mb-2 ${textColor}`}
-            >
-              {alertType === 'critical'
-                ? '⚠️ Critical Alert'
-                : '⚠️ Warning'}
+            <h3 className={`text-xl font-bold mb-2 ${textColor}`}>
+              {alertType === "critical" ? "⚠️ Critical Alert" : "⚠️ Warning"}
             </h3>
             <p className={`${textColor} text-lg`}>{getAlertMessage()}</p>
           </div>
@@ -160,6 +125,5 @@ export function WateringNotification({
         </button>
       </div>
     </div>
-  )
+  );
 }
-

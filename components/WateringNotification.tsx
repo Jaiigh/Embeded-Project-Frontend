@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { sendWateringAlert, canSendNotifications } from '@/lib/notifications'
 
 interface WateringNotificationProps {
   waterLevel: number
@@ -16,6 +17,7 @@ export function WateringNotification({
   moistureThreshold = 30,
 }: WateringNotificationProps) {
   const [isDismissed, setIsDismissed] = useState(false)
+  const notificationSentRef = useRef<string>('')
 
   const waterLow = waterLevel < waterThreshold
   const moistureLow = moistureLevel < moistureThreshold
@@ -24,7 +26,28 @@ export function WateringNotification({
   // Reset dismissal when levels change
   useEffect(() => {
     setIsDismissed(false)
+    notificationSentRef.current = '' // Reset notification tracking
   }, [waterLevel, moistureLevel])
+
+  // Send push notification when alert is triggered (only once per alert state)
+  useEffect(() => {
+    if (shouldAlert && canSendNotifications()) {
+      const alertKey = `${waterLow}-${moistureLow}-${waterLevel}-${moistureLevel}`
+      
+      // Only send if we haven't sent for this exact alert state
+      if (notificationSentRef.current !== alertKey) {
+        notificationSentRef.current = alertKey
+        
+        if (waterLow && moistureLow) {
+          sendWateringAlert('both', waterLevel, moistureLevel)
+        } else if (waterLow) {
+          sendWateringAlert('water', waterLevel)
+        } else if (moistureLow) {
+          sendWateringAlert('moisture', undefined, moistureLevel)
+        }
+      }
+    }
+  }, [shouldAlert, waterLow, moistureLow, waterLevel, moistureLevel])
 
   if (!shouldAlert) {
     return null

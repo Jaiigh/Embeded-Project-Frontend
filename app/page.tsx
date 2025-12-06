@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { WaterLevel } from '@/components/WaterLevel'
 import { MoistureLevel } from '@/components/MoistureLevel'
 import { WateringNotification } from '@/components/WateringNotification'
+import { FirebaseTest } from '@/components/FirebaseTest'
+import { NotificationPermission } from '@/components/NotificationPermission'
 
 export default function Home() {
   const [waterLevel, setWaterLevel] = useState(75)
@@ -20,6 +22,11 @@ export default function Home() {
         <p className="text-gray-600 mb-8">
           Monitor your plant&apos;s water and moisture levels
         </p>
+
+        {/* Notification Permission */}
+        <div className="mb-6">
+          <NotificationPermission />
+        </div>
 
         {/* Test Controls */}
         <div className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-100 mb-6">
@@ -77,6 +84,11 @@ export default function Home() {
           waterThreshold={waterThreshold}
           moistureThreshold={moistureThreshold}
         />
+
+        {/* Firebase Test Component */}
+        <div className="mt-6">
+          <FirebaseTest />
+        </div>
       </div>
     </main>
   )

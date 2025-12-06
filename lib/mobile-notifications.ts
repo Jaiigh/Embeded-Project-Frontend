@@ -60,7 +60,8 @@ export async function sendMobileNotification(
     try {
       const registration = await navigator.serviceWorker.ready;
       
-      await registration.showNotification(title, {
+      // Service worker notifications support additional options
+      const notificationOptions: any = {
         body,
         icon: '/icon-192x192.png',
         badge: '/icon-192x192.png',
@@ -78,7 +79,9 @@ export async function sendMobileNotification(
             title: 'Dismiss',
           },
         ],
-      });
+      };
+      
+      await registration.showNotification(title, notificationOptions);
       
       console.log('Mobile notification sent:', title);
     } catch (error) {

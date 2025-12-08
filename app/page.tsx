@@ -38,7 +38,7 @@ export default function Home() {
   const notificationSentRef = useRef<string>("");
 
   const waterThreshold = 30; // Alert if water level < 30%
-  const moistureThreshold = 50; // Alert if moisture level < 50%
+  const moistureThreshold = 40; // Alert if moisture level < 50%
 
   // Fetch data on mount and every 5 seconds
   useEffect(() => {

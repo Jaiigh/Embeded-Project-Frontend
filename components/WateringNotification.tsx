@@ -13,7 +13,7 @@ export function WateringNotification({
   waterLevel,
   moistureLevel,
   waterThreshold = 30,
-  moistureThreshold = 50,
+  moistureThreshold = 40,
 }: WateringNotificationProps) {
   const [isDismissed, setIsDismissed] = useState(false);
 

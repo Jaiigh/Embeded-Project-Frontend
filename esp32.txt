@@ -1,0 +1,154 @@
+#include <WiFi.h>
+#include <Firebase_ESP_Client.h>
+// --- Blynk ---
+#define BLYNK_TEMPLATE_ID "TMPL6siTlA7wE"
+#define BLYNK_TEMPLATE_NAME "Water Level Noti"
+#define BLYNK_AUTH_TOKEN "NEUu3FSYgEIsEUnfRc_3zra9zYtxthJy"
+
+
+
+#include <BlynkSimpleEsp32.h>
+
+// --- WiFi ---
+#define WIFI_SSID "Mew"
+#define WIFI_PASSWORD "mew12345"
+
+// --- Firebase ---
+#define API_KEY "AIzaSyC_4BBiwX-fJ4rlSV3AnrEhG4z4oWJ0NSY"
+#define DATABASE_URL "https://embedproject-ac1d3-default-rtdb.asia-southeast1.firebasedatabase.app"
+
+// --- Hardware ---
+#define RX_PIN 18
+#define TX_PIN 17
+#define BUZZER 2
+
+// --- Globals ---
+FirebaseData fbdo;
+FirebaseAuth fbAuth;
+FirebaseConfig fbConfig;
+
+HardwareSerial mySerial(2); // UART2
+
+bool signupOK = false;
+
+String soil = "", water = "", percent = "";
+String buffer = "";
+int S, W, P, E;
+
+BlynkTimer timer;
+int waterAlertFlag = 0; // prevent repeated notifications
+
+// --- Read UART data ---
+void Read_Uart() {
+  while (mySerial.available()) {
+    char c = mySerial.read();
+    buffer += c;
+
+    if (c == 'E') { // end of packet
+      Serial.print("RAW UART: ");
+      Serial.println(buffer);
+
+      S = buffer.indexOf("S");
+      W = buffer.indexOf("W");
+      P = buffer.indexOf("P");
+      E = buffer.indexOf("E");
+
+      if (S != -1 && W != -1 && P != -1 && E != -1 && S < W && W < P && P < E) {
+        String ss = buffer.substring(S + 1, W);
+        String ww = buffer.substring(W + 1, P);
+        String pp = buffer.substring(P + 1, E);
+
+        if (ss.length() > 0) soil = ss;
+        if (ww.length() > 0) water = ww;
+        if (pp.length() > 0) percent = pp;
+      }
+
+      buffer = ""; // clear buffer
+    }
+  }
+}
+
+// --- Check water level and notify ---
+void checkWaterLevel() {
+  if (water.length() == 0) return;
+
+  float waterFloat = water.toFloat();
+
+  if (waterFloat < 30.0 && waterAlertFlag == 0) {
+    Serial.println("Water level is below 30%");
+    Blynk.logEvent("water_level_alert", "Water level is below 30%");
+    digitalWrite(BUZZER, HIGH);
+    waterAlertFlag = 1; // prevent repeated alerts
+  }
+  else if (waterFloat >= 30.0 && waterAlertFlag == 1) {
+    Serial.println("Water level OK");
+    digitalWrite(BUZZER, LOW);
+    waterAlertFlag = 0; // reset flag
+  }
+}
+
+// --- Setup ---
+void setup() {
+  Serial.begin(115200);
+  mySerial.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
+  pinMode(BUZZER, OUTPUT);
+
+  // --- Connect WiFi ---
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
+  Serial.println();
+  Serial.println("WiFi Connected!");
+  Serial.print("IP: ");
+  Serial.println(WiFi.localIP());
+
+  // --- Initialize Blynk ---
+  Blynk.config(BLYNK_AUTH_TOKEN);
+  Blynk.connect();
+
+  // --- Initialize Firebase ---
+  fbConfig.api_key = API_KEY;
+  fbConfig.database_url = DATABASE_URL;
+
+  if (Firebase.signUp(&fbConfig, &fbAuth, "", "")) {
+    Serial.println("Firebase SignUp OK");
+    signupOK = true;
+  } else {
+    Serial.printf("Firebase SignUp FAILED: %s\n", fbConfig.signer.signupError.message.c_str());
+  }
+
+  Firebase.begin(&fbConfig, &fbAuth);
+  Firebase.reconnectWiFi(true);
+
+  Serial.println("Firebase initialized");
+
+  // --- Setup timer for water notification ---
+  timer.setInterval(5000L, checkWaterLevel); // every 5 seconds
+}
+
+// --- Main loop ---
+void loop() {
+  Blynk.run();
+  timer.run();
+
+  Read_Uart();
+
+  // Write to Firebase if ready
+  if (signupOK && Firebase.ready() && soil.length() > 0 && water.length() > 0 && percent.length() > 0) {
+    float soilFloat = soil.toFloat();
+    float waterFloat = water.toFloat();
+    float percentFloat = percent.toFloat();
+
+    if (!Firebase.RTDB.setFloat(&fbdo, "soil-moisture/value", soilFloat))
+      Serial.println("FAILED to set soil-moisture/value");
+
+    if (!Firebase.RTDB.setFloat(&fbdo, "water-level/value", waterFloat))
+      Serial.println("FAILED to set water-level/value");
+
+    if (!Firebase.RTDB.setFloat(&fbdo, "water-percent/value", percentFloat))
+      Serial.println("FAILED to set water-percent/value");
+  }
+}

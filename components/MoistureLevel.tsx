@@ -9,12 +9,12 @@ export function MoistureLevel({
   level,
   threshold = 30,
 }: MoistureLevelProps) {
-  const isLow = level < threshold
-  const levelColor = isLow
-    ? 'bg-red-500'
-    : level < 50
-    ? 'bg-yellow-500'
-    : 'bg-green-500'
+  // Status buckets: <40 => แห้ง, 40-80 => normal, >=80 => ชื้นเกิน
+  const status = level < 40 ? 'dry' : level < 80 ? 'normal' : 'too moist'
+  const levelColor =
+    level < 40 ? 'bg-red-500' : level < 80 ? 'bg-green-500' : 'bg-blue-500'
+  const statusTextColor =
+    level < 40 ? 'text-red-600' : level < 80 ? 'text-green-600' : 'text-blue-600'
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-100">
@@ -42,11 +42,7 @@ export function MoistureLevel({
       <div className="mb-4">
         <div className="flex justify-between items-center mb-2">
           <span className="text-sm text-gray-600">Current Level</span>
-          <span
-            className={`text-3xl font-bold ${
-              isLow ? 'text-red-600' : 'text-green-600'
-            }`}
-          >
+          <span className={`text-3xl font-bold ${statusTextColor}`}>
             {level}%
           </span>
         </div>
@@ -68,9 +64,7 @@ export function MoistureLevel({
 
       <div className="text-sm text-gray-500">
         Threshold: {threshold}% | Status:{' '}
-        <span className={isLow ? 'text-red-600 font-semibold' : 'text-green-600'}>
-          {isLow ? 'Low' : 'Normal'}
-        </span>
+        <span className={`${statusTextColor} font-semibold`}>{status}</span>
       </div>
     </div>
   )
